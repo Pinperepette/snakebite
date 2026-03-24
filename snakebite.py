@@ -286,14 +286,17 @@ def parse_rss(xml_bytes: bytes) -> list[dict]:
     items = []
     for match in re.finditer(r"<item>(.*?)</item>", text, re.DOTALL):
         block = match.group(1)
-        title = _xml_tag(block, "title")
-        link = _xml_tag(block, "link")
-        if title:
-            parts = title.strip().rsplit(" ", 1)
+        link = _xml_tag(block, "link") or ""
+
+        # Extract name and version from link URL (always reliable)
+        # Newest feed:  /project/pkg-name/         -> name, no version
+        # Updates feed: /project/pkg-name/1.2.3/   -> name + version
+        m = re.search(r"/project/([^/]+?)(?:/([^/]+))?/?$", link)
+        if m:
             items.append({
-                "name": parts[0] if parts else title.strip(),
-                "version": parts[1] if len(parts) > 1 else "",
-                "link": link or "",
+                "name": m.group(1),
+                "version": m.group(2) or "",
+                "link": link,
             })
     return items
 
